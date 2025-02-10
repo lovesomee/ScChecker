@@ -3,11 +3,12 @@ package auction
 import (
 	_ "embed"
 	"github.com/jmoiron/sqlx"
+	"sc-profile/models"
 )
 
 type IRepository interface {
 	InsertDeal(deal DbAuctionHistoryDeal) error
-	BulkInsertDeal(deals []DbAuctionHistoryDeal) error
+	BulkInsertDeal(itemId string, historyPrices []models.AuctionHistoryPrices) error
 }
 
 type Repository struct {
@@ -34,11 +35,11 @@ func (r *Repository) InsertDeal(deal DbAuctionHistoryDeal) error {
 	return nil
 }
 
-func (r *Repository) BulkInsertDeal(deals []DbAuctionHistoryDeal) error {
+func (r *Repository) BulkInsertDeal(itemId string, historyPrices []models.AuctionHistoryPrices) error {
 	upsertQuery := "INSERT INTO auction_history (item_id, amount, price, time, additional) VALUES (:item_id, :amount, :price, :time, :additional)"
 	onConflictStatement := " ON CONFLICT (price, time) DO NOTHING"
 
-	query, queryArgs, err := r.db.BindNamed(upsertQuery, deals)
+	query, queryArgs, err := r.db.BindNamed(upsertQuery, AuctionHistoryPricesToDbDeals(itemId, historyPrices))
 	if err != nil {
 		return err
 	}

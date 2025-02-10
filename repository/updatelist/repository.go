@@ -3,10 +3,12 @@ package updatelist
 import (
 	_ "embed"
 	"github.com/jmoiron/sqlx"
+	"sc-profile/models"
 )
 
 type IRepository interface {
-	SelectUpdateList() ([]DbUpdateList, error)
+	SelectUpdateList() ([]models.UpdateList, error)
+	InsertUpdateList(updateList models.UpdateList) error
 }
 
 type Repository struct {
@@ -20,11 +22,29 @@ func NewRepository(db *sqlx.DB) *Repository {
 //go:embed sql/select_update_list.sql
 var selectUpdateListSql string
 
-func (r *Repository) SelectUpdateList() ([]DbUpdateList, error) {
+func (r *Repository) SelectUpdateList() ([]models.UpdateList, error) {
 	var updateList []DbUpdateList
 	if err := r.db.Get(&updateList, selectUpdateListSql); err != nil {
 		return nil, err
 	}
 
-	return updateList, nil
+	return DbUpdateListsToUpdateLists(updateList), nil
+}
+
+//go:embed sql/insert_update_list.sql
+var insertUpdateListSql string
+
+func (r *Repository) InsertUpdateList(updateList models.UpdateList) error {
+	stmt, err := r.db.PrepareNamed(insertUpdateListSql)
+	if err != nil {
+		return err
+	}
+
+	defer stmt.Close()
+
+	if _, err = stmt.Exec(UpdateListToDb(updateList)); err != nil {
+		return err
+	}
+
+	return nil
 }

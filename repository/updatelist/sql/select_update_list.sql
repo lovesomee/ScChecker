@@ -1,0 +1,2 @@
+select item_id
+from update_list

@@ -1,0 +1,19 @@
+version: "3"
+
+services:
+  database:
+    container_name: "sc_db"
+    image: postgres:15
+    restart: always
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=rpass
+      - POSTGRES_DB=sc_db
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  db-data:

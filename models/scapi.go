@@ -1,4 +1,4 @@
-package scapi
+package models
 
 import "time"
 

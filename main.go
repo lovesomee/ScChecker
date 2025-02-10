@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
@@ -11,13 +10,13 @@ import (
 	"sc-profile/api"
 	"sc-profile/cron"
 	dbauction "sc-profile/repository/auction"
-	"sc-profile/repository/updatelist"
+	dbupdatelist "sc-profile/repository/updatelist"
 	"sc-profile/service/auction"
 	"sc-profile/service/scapi"
+	"sc-profile/service/updatelist"
 )
 
 func main() {
-	router := mux.NewRouter()
 	db := newDatabase("postgres://root:rpass@localhost:5432/sc_db?sslmode=disable")
 	err := goose.Up(db.DB, "migrations")
 	if err != nil {
@@ -25,22 +24,17 @@ func main() {
 	}
 
 	auctionRepository := dbauction.NewRepository(db)
-	updateListRepository := updatelist.NewRepository(db)
+	updateListRepository := dbupdatelist.NewRepository(db)
+
 	stalcraftApi := scapi.NewScApi(http.DefaultClient, "https://eapi.stalcraft.net")
+	updateListService := updatelist.NewService(updateListRepository)
 	auctionService := auction.NewService(stalcraftApi, auctionRepository, updateListRepository)
+
 	scCron := cron.NewScCron(auctionService)
 	scCron.Start()
 
-	api.RegisterPing(router)
-	server := newServer(router)
+	server := api.NewServer(updateListService)
 	server.ListenAndServe()
-}
-
-func newServer(router http.Handler) *http.Server {
-	return &http.Server{
-		Handler: router,
-		Addr:    ":80",
-	}
 }
 
 func newDatabase(connect string) *sqlx.DB {

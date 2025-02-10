@@ -2,7 +2,6 @@ package auction
 
 import (
 	"sc-profile/repository/auction"
-	"sc-profile/repository/mapper"
 	"sc-profile/repository/updatelist"
 	"sc-profile/service/scapi"
 )
@@ -33,7 +32,7 @@ func (s *Service) UpdateItemHistory() error {
 			return err
 		}
 
-		if err = s.AuctionRepository.BulkInsertDeal(mapper.AuctionHistoryPricesToDbDeals(item.ItemId, auctionHistory.Prices)); err != nil { //выполняем массовую вставку в БД
+		if err = s.AuctionRepository.BulkInsertDeal(item.ItemId, auctionHistory.Prices); err != nil { //выполняем массовую вставку в БД
 			return err
 		}
 	}

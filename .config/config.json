@@ -1,0 +1,9 @@
+{
+  "port": 80,
+  "database": {
+    "PostgresConnection": "postgres://root:rpass@localhost:5432/sc_db?sslmode=disable"
+  },
+  "stalcraft": {
+    "DomainApi": "eapi.stalcraft.net"
+  }
+}

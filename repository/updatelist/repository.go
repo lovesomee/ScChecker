@@ -28,7 +28,7 @@ var selectUpdateListSql string
 
 func (r *Repository) SelectUpdateList(ctx context.Context) ([]models.UpdateList, error) {
 	var updateList []DbUpdateList
-	if err := r.db.GetContext(ctx, &updateList, selectUpdateListSql); err != nil {
+	if err := r.db.SelectContext(ctx, &updateList, selectUpdateListSql); err != nil {
 		return nil, fmt.Errorf("get query error: %w", err)
 	}
 

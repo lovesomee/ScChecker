@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"sc-profile/api"
+	"sc-profile/config"
 	"sc-profile/cron"
 	dbauction "sc-profile/repository/auction"
 	dbupdatelist "sc-profile/repository/updatelist"
@@ -18,8 +19,9 @@ import (
 )
 
 func main() {
+	cfg := config.Read()
 	logger, _ := zap.NewProduction()
-	db := newDatabase("postgres://root:rpass@localhost:5432/sc_db?sslmode=disable")
+	db := newDatabase(cfg)
 	err := goose.Up(db.DB, "migrations")
 	if err != nil {
 		panic(err)
@@ -28,19 +30,19 @@ func main() {
 	auctionRepository := dbauction.NewRepository(logger, db)
 	updateListRepository := dbupdatelist.NewRepository(logger, db)
 
-	stalcraftApi := scapi.NewScApi(logger, http.DefaultClient, "https://eapi.stalcraft.net")
+	stalcraftApi := scapi.NewScApi(logger, cfg, http.DefaultClient)
 	updateListService := updatelist.NewService(logger, updateListRepository)
 	auctionService := auction.NewService(logger, stalcraftApi, auctionRepository, updateListRepository)
 
 	scCron := cron.NewScCron(logger, auctionService)
 	scCron.Start()
 
-	server := api.NewServer(logger, updateListService)
+	server := api.NewServer(logger, cfg, updateListService)
 	server.ListenAndServe()
 }
 
-func newDatabase(connect string) *sqlx.DB {
-	pool, err := pgxpool.New(context.Background(), connect)
+func newDatabase(cfg config.Settings) *sqlx.DB {
+	pool, err := pgxpool.New(context.Background(), cfg.Database.PostgresConnection)
 	if err != nil {
 		panic(err)
 	}

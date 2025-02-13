@@ -1,13 +1,15 @@
 package api
 
 import (
+	"fmt"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 	"net/http"
+	"sc-profile/config"
 	"sc-profile/service/updatelist"
 )
 
-func NewServer(logger *zap.Logger, updateListService updatelist.IService) *http.Server {
+func NewServer(logger *zap.Logger, cfg config.Settings, updateListService updatelist.IService) *http.Server {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/update-list", AddUpdateList(logger, updateListService)).Methods(http.MethodPost)
@@ -15,6 +17,6 @@ func NewServer(logger *zap.Logger, updateListService updatelist.IService) *http.
 
 	return &http.Server{
 		Handler: router,
-		Addr:    ":80",
+		Addr:    fmt.Sprintf(":%d", cfg.Port),
 	}
 }

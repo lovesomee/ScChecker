@@ -9,8 +9,6 @@ import (
 	"time"
 )
 
-const itemId = "kqgy"
-
 type ScCron struct {
 	logger         *zap.Logger
 	auctionService auction.IService

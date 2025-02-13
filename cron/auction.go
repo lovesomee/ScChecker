@@ -1,19 +1,23 @@
 package cron
 
 import (
+	"context"
 	"fmt"
 	"github.com/robfig/cron"
+	"go.uber.org/zap"
 	"sc-profile/service/auction"
+	"time"
 )
 
 const itemId = "kqgy"
 
 type ScCron struct {
-	AuctionService auction.IService
+	logger         *zap.Logger
+	auctionService auction.IService
 }
 
-func NewScCron(auctionService auction.IService) *ScCron {
-	return &ScCron{AuctionService: auctionService}
+func NewScCron(logger *zap.Logger, auctionService auction.IService) *ScCron {
+	return &ScCron{logger: logger, auctionService: auctionService}
 }
 
 func (c *ScCron) Start() {
@@ -27,9 +31,12 @@ func (c *ScCron) Start() {
 }
 
 func (c *ScCron) function() {
-	if err := c.AuctionService.UpdateItemHistory(); err != nil {
-		fmt.Println(err)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	if err := c.auctionService.UpdateItemHistory(ctx); err != nil {
+		c.logger.Error("error updating item history", zap.Error(err))
 	} else {
-		fmt.Println("прости, если трахнул")
+		fmt.Println("by ПИСЯТДВА")
 	}
 }

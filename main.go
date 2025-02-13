@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 	"github.com/pressly/goose/v3"
+	"go.uber.org/zap"
 	"net/http"
 	"sc-profile/api"
 	"sc-profile/cron"
@@ -17,23 +18,24 @@ import (
 )
 
 func main() {
+	logger, _ := zap.NewProduction()
 	db := newDatabase("postgres://root:rpass@localhost:5432/sc_db?sslmode=disable")
 	err := goose.Up(db.DB, "migrations")
 	if err != nil {
 		panic(err)
 	}
 
-	auctionRepository := dbauction.NewRepository(db)
-	updateListRepository := dbupdatelist.NewRepository(db)
+	auctionRepository := dbauction.NewRepository(logger, db)
+	updateListRepository := dbupdatelist.NewRepository(logger, db)
 
-	stalcraftApi := scapi.NewScApi(http.DefaultClient, "https://eapi.stalcraft.net")
-	updateListService := updatelist.NewService(updateListRepository)
-	auctionService := auction.NewService(stalcraftApi, auctionRepository, updateListRepository)
+	stalcraftApi := scapi.NewScApi(logger, http.DefaultClient, "https://eapi.stalcraft.net")
+	updateListService := updatelist.NewService(logger, updateListRepository)
+	auctionService := auction.NewService(logger, stalcraftApi, auctionRepository, updateListRepository)
 
-	scCron := cron.NewScCron(auctionService)
+	scCron := cron.NewScCron(logger, auctionService)
 	scCron.Start()
 
-	server := api.NewServer(updateListService)
+	server := api.NewServer(logger, updateListService)
 	server.ListenAndServe()
 }
 

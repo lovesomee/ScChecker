@@ -1,31 +1,35 @@
 package updatelist
 
 import (
+	"context"
 	_ "embed"
+	"fmt"
 	"github.com/jmoiron/sqlx"
+	"go.uber.org/zap"
 	"sc-profile/models"
 )
 
 type IRepository interface {
-	SelectUpdateList() ([]models.UpdateList, error)
-	InsertUpdateList(updateList models.UpdateList) error
+	SelectUpdateList(ctx context.Context) ([]models.UpdateList, error)
+	InsertUpdateList(ctx context.Context, updateList models.UpdateList) error
 }
 
 type Repository struct {
-	db *sqlx.DB
+	logger *zap.Logger
+	db     *sqlx.DB
 }
 
-func NewRepository(db *sqlx.DB) *Repository {
-	return &Repository{db: db}
+func NewRepository(logger *zap.Logger, db *sqlx.DB) *Repository {
+	return &Repository{logger: logger, db: db}
 }
 
 //go:embed sql/select_update_list.sql
 var selectUpdateListSql string
 
-func (r *Repository) SelectUpdateList() ([]models.UpdateList, error) {
+func (r *Repository) SelectUpdateList(ctx context.Context) ([]models.UpdateList, error) {
 	var updateList []DbUpdateList
-	if err := r.db.Get(&updateList, selectUpdateListSql); err != nil {
-		return nil, err
+	if err := r.db.GetContext(ctx, &updateList, selectUpdateListSql); err != nil {
+		return nil, fmt.Errorf("get query error: %w", err)
 	}
 
 	return DbUpdateListsToUpdateLists(updateList), nil
@@ -34,16 +38,16 @@ func (r *Repository) SelectUpdateList() ([]models.UpdateList, error) {
 //go:embed sql/insert_update_list.sql
 var insertUpdateListSql string
 
-func (r *Repository) InsertUpdateList(updateList models.UpdateList) error {
-	stmt, err := r.db.PrepareNamed(insertUpdateListSql)
+func (r *Repository) InsertUpdateList(ctx context.Context, updateList models.UpdateList) error {
+	stmt, err := r.db.PrepareNamedContext(ctx, insertUpdateListSql)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to prepare statement: %w", err)
 	}
 
 	defer stmt.Close()
 
-	if _, err = stmt.Exec(UpdateListToDb(updateList)); err != nil {
-		return err
+	if _, err = stmt.ExecContext(ctx, UpdateListToDb(updateList)); err != nil {
+		return fmt.Errorf("failed to execute statement: %w", err)
 	}
 
 	return nil

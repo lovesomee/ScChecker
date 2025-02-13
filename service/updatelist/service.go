@@ -1,25 +1,29 @@
 package updatelist
 
 import (
+	"context"
+	"fmt"
+	"go.uber.org/zap"
 	"sc-profile/models"
 	"sc-profile/repository/updatelist"
 )
 
 type IService interface {
-	AddUpdateList(updateList models.UpdateList) error
+	AddUpdateList(context.Context, models.UpdateList) error
 }
 
 type Service struct {
-	UpdateListRepository updatelist.IRepository
+	logger               *zap.Logger
+	updateListRepository updatelist.IRepository
 }
 
-func NewService(updateListRepository updatelist.IRepository) *Service {
-	return &Service{UpdateListRepository: updateListRepository}
+func NewService(logger *zap.Logger, updateListRepository updatelist.IRepository) *Service {
+	return &Service{logger: logger, updateListRepository: updateListRepository}
 }
 
-func (s *Service) AddUpdateList(updateList models.UpdateList) error {
-	if err := s.UpdateListRepository.InsertUpdateList(updateList); err != nil {
-		return err
+func (s *Service) AddUpdateList(ctx context.Context, updateList models.UpdateList) error {
+	if err := s.updateListRepository.InsertUpdateList(ctx, updateList); err != nil {
+		return fmt.Errorf("insertUpdateList error: %w", err)
 	}
 
 	return nil

@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
-	"sc-profile/models"
+	"strings"
 )
 
 type IRepository interface {
-	SelectUpdateList(ctx context.Context) ([]models.UpdateList, error)
-	InsertUpdateList(ctx context.Context, updateList models.UpdateList) error
+	SelectUpdateList(ctx context.Context) ([]string, error)
+	InsertUpdateList(ctx context.Context, updateList []string) error
 }
 
 type Repository struct {
@@ -26,29 +26,38 @@ func NewRepository(logger *zap.Logger, db *sqlx.DB) *Repository {
 //go:embed sql/select_update_list.sql
 var selectUpdateListSql string
 
-func (r *Repository) SelectUpdateList(ctx context.Context) ([]models.UpdateList, error) {
-	var updateList []DbUpdateList
+func (r *Repository) SelectUpdateList(ctx context.Context) ([]string, error) {
+	var updateList []string
 	if err := r.db.SelectContext(ctx, &updateList, selectUpdateListSql); err != nil {
 		return nil, fmt.Errorf("get query error: %w", err)
 	}
 
-	return DbUpdateListsToUpdateLists(updateList), nil
+	return updateList, nil
 }
 
-//go:embed sql/insert_update_list.sql
-var insertUpdateListSql string
-
-func (r *Repository) InsertUpdateList(ctx context.Context, updateList models.UpdateList) error {
-	stmt, err := r.db.PrepareNamedContext(ctx, insertUpdateListSql)
-	if err != nil {
-		return fmt.Errorf("failed to prepare statement: %w", err)
+func (r *Repository) InsertUpdateList(ctx context.Context, updateList []string) error {
+	values := make([]string, len(updateList))
+	for i := range updateList {
+		values[i] = fmt.Sprintf("($%d)", i+1)
 	}
+	query := fmt.Sprintf("INSERT INTO update_list (item_id) VALUES %s", strings.Join(values, ","))
 
+	// Подготовка запроса
+	stmt, err := r.db.Prepare(query)
+	if err != nil {
+		return err
+	}
 	defer stmt.Close()
 
-	if _, err = stmt.ExecContext(ctx, UpdateListToDb(updateList)); err != nil {
-		return fmt.Errorf("failed to execute statement: %w", err)
-	}
+	// Выполнение запроса
+	_, err = stmt.Exec(toInterfaceSlice(updateList)...)
+	return err
+}
 
-	return nil
+func toInterfaceSlice(updateList []string) []interface{} {
+	result := make([]interface{}, len(updateList))
+	for i, v := range updateList {
+		result[i] = v
+	}
+	return result
 }

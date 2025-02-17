@@ -4,13 +4,12 @@ import (
 	"encoding/json"
 	"go.uber.org/zap"
 	"net/http"
-	"sc-profile/models"
 	"sc-profile/service/updatelist"
 )
 
 func AddUpdateList(logger *zap.Logger, updateListService updatelist.IService) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var updateList models.UpdateList
+		var updateList []string
 
 		if err := json.NewDecoder(r.Body).Decode(&updateList); err != nil {
 			logger.Error("incorrect json format error", zap.Error(err))
@@ -24,6 +23,6 @@ func AddUpdateList(logger *zap.Logger, updateListService updatelist.IService) fu
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusCreated)
 	}
 }

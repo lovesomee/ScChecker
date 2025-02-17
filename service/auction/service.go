@@ -25,18 +25,18 @@ func NewService(logger *zap.Logger, stalcraftApi scapi.IScApi, auctionRepository
 }
 
 func (s *Service) UpdateItemHistory(ctx context.Context) error {
-	dbUpdateList, err := s.updateListRepository.SelectUpdateList(ctx) //получаем массив айдишников по которым будем искать
+	updateList, err := s.updateListRepository.SelectUpdateList(ctx) //получаем массив айдишников по которым будем искать
 	if err != nil {
 		return fmt.Errorf("selectItemHistory error: %w", err)
 	}
 
-	for _, item := range dbUpdateList {
-		auctionHistory, err := s.stalcraftApi.GetAuctionHistory(ctx, item.ItemId, "ru", 200) //формируем http запрос на получение резульатов от api, возвращаем заполненную структуру с ответом
+	for _, itemId := range updateList {
+		auctionHistory, err := s.stalcraftApi.GetAuctionHistory(ctx, itemId, "ru", 200) //формируем http запрос на получение резульатов от api, возвращаем заполненную структуру с ответом
 		if err != nil {
 			return fmt.Errorf("GetAuctionHistory error: %w", err)
 		}
 
-		if err = s.auctionRepository.BulkInsertDeal(ctx, item.ItemId, auctionHistory.Prices); err != nil { //выполняем массовую вставку в БД
+		if err = s.auctionRepository.BulkInsertDeal(ctx, itemId, auctionHistory.Prices); err != nil { //выполняем массовую вставку в БД
 			return fmt.Errorf("bulkInsertDeal error: %w", err)
 		}
 	}

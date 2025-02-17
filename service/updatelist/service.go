@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"go.uber.org/zap"
-	"sc-profile/models"
 	"sc-profile/repository/updatelist"
 )
 
 type IService interface {
-	AddUpdateList(context.Context, models.UpdateList) error
+	AddUpdateList(context.Context, []string) error
+	GetUpdateList(ctx context.Context) ([]string, error)
 }
 
 type Service struct {
@@ -21,10 +21,19 @@ func NewService(logger *zap.Logger, updateListRepository updatelist.IRepository)
 	return &Service{logger: logger, updateListRepository: updateListRepository}
 }
 
-func (s *Service) AddUpdateList(ctx context.Context, updateList models.UpdateList) error {
+func (s *Service) AddUpdateList(ctx context.Context, updateList []string) error {
 	if err := s.updateListRepository.InsertUpdateList(ctx, updateList); err != nil {
 		return fmt.Errorf("insertUpdateList error: %w", err)
 	}
 
 	return nil
+}
+
+func (s *Service) GetUpdateList(ctx context.Context) ([]string, error) {
+	updateList, err := s.updateListRepository.SelectUpdateList(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("selectUpdateList error: %w", err)
+	}
+
+	return updateList, err
 }

@@ -12,6 +12,7 @@ import (
 type IRepository interface {
 	SelectUpdateList(ctx context.Context) ([]string, error)
 	InsertUpdateList(ctx context.Context, updateList []string) error
+	DelUpdateList(ctx context.Context, updateList string) error
 }
 
 type Repository struct {
@@ -42,14 +43,12 @@ func (r *Repository) InsertUpdateList(ctx context.Context, updateList []string) 
 	}
 	query := fmt.Sprintf("INSERT INTO update_list (item_id) VALUES %s", strings.Join(values, ","))
 
-	// Подготовка запроса
 	stmt, err := r.db.Prepare(query)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
-	// Выполнение запроса
 	_, err = stmt.Exec(toInterfaceSlice(updateList)...)
 	return err
 }
@@ -60,4 +59,16 @@ func toInterfaceSlice(updateList []string) []interface{} {
 		result[i] = v
 	}
 	return result
+}
+
+//go:embed sql/delete_update_list.sql
+var deleteUpdateListSql string
+
+func (r *Repository) DelUpdateList(ctx context.Context, updateList string) error {
+	_, err := r.db.ExecContext(ctx, deleteUpdateListSql, updateList)
+	if err != nil {
+		return err
+	}
+
+	return err
 }

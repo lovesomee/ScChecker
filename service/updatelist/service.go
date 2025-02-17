@@ -10,6 +10,7 @@ import (
 type IService interface {
 	AddUpdateList(context.Context, []string) error
 	GetUpdateList(ctx context.Context) ([]string, error)
+	DelUpdateList(ctx context.Context, updateList string) error
 }
 
 type Service struct {
@@ -36,4 +37,12 @@ func (s *Service) GetUpdateList(ctx context.Context) ([]string, error) {
 	}
 
 	return updateList, err
+}
+
+func (s *Service) DelUpdateList(ctx context.Context, updateList string) error {
+	if err := s.updateListRepository.DelUpdateList(ctx, updateList); err != nil {
+		return fmt.Errorf("delUpdateList error: %w", err)
+	}
+
+	return nil
 }
